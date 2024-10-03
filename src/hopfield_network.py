@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 from PIL import Image
@@ -27,18 +28,19 @@ def plot(imgs):
 
     plt.show()
 
-class HopfieldNetwork:
+class BaseHopfieldNetwork:
     def __init__(self, img_shape: tuple, mem_img_paths: list, threshold: int, thinking_time: int):
+        self.OFF_ACT_VAL: int
+        self.results = {}
+        
         self.img_shape = img_shape
         self.mem_img_paths = mem_img_paths
         self.threshold = threshold
         self.thinking_time = thinking_time
-        
+
         self.num_nodes = img_shape[0]*img_shape[1]
         self.W_shape = (self.num_nodes, self.num_nodes)
         self.W = np.zeros(self.W_shape)
-
-        self.memories = self.fit_and_get_memories()
 
 
     def read_img_to_mem(self, img_path):
@@ -47,16 +49,16 @@ class HopfieldNetwork:
         mem = np.array(pil_img, dtype = float)
         mask = mem > self.threshold
         mem[mask] = 1
-        mem[~mask] = -1
+        mem[~mask] = self.OFF_ACT_VAL
         return mem
     
     def mem_to_img(self, mem):
         img = np.zeros(self.img_shape, dtype=np.uint8)
         img[mem==1] = 255
-        img[mem==-1] = 0
+        img[mem==self.OFF_ACT_VAL] = 0
         img = Image.fromarray(img, mode="L")
         return img
-
+    
     def fit_and_get_memories(self):
         memories = []
         for path in self.mem_img_paths:
@@ -74,17 +76,12 @@ class HopfieldNetwork:
             self.W += self.calc_mem_weights(mem)
 
     def calc_mem_weights(self, mem):
-        x = mem.flatten()
-        mem_w = np.zeros(self.W_shape)
-        for i in tqdm(range(len(x))):
-            for j in range(i+1, len(x)):
-                mem_w[i,j] = x[i]*x[j]
-                mem_w[j,i] = mem_w[i,j]
-        return mem_w
-        
+        pass
+
+
     def remember_(self, mem_cue):
         x = mem_cue.flatten()
-        self.energies_ = []
+        mem_energies = []
 
         for t in tqdm(range(self.thinking_time)):
             i = random.randint(0, len(x)-1)
@@ -97,27 +94,33 @@ class HopfieldNetwork:
 
             ##########################
             if t%1000 == 0:
-                self.energies_.append(self.calc_energy(x))
+                mem_energies.append(self.calc_energy(x))
 
         recalled_mem = x.reshape(self.img_shape)
-        return recalled_mem
+        return recalled_mem, mem_energies
+    
+    def extract_fname(self, path):
+        _, fname_with_ext = os.path.split(path)
+        fname = fname_with_ext[:-4]
+        return fname
 
     def remember(self, memcue_img_paths):
-        recalled_memories = []
-        self.mem_cues = []
-        self.memcue_img_paths = memcue_img_paths
-
         for path in memcue_img_paths:
+            res = {}
+
             mem_cue = self.read_img_to_mem(path)
-            self.mem_cues.append(mem_cue)
-
-            recalled_mem = self.remember_(mem_cue)
-            recalled_memories.append(recalled_mem)
-
-        ###########################
-        self.recalled_memories = recalled_memories
+            res['mem_cue'] = mem_cue
+            res['recalled_mem'], res['energies'] = self.remember_(mem_cue)
+            
+            fname = self.extract_fname(path)
+            corres_mem_img_fname = fname.split('_')[0]
+            corres_mem = self.memories[int(corres_mem_img_fname)-1]
+            match_score = self.match_memories(res['recalled_mem'], corres_mem)
+            res['match_score'] = match_score
+            
+            self.results[fname] = res
         
-        return recalled_memories
+        return self.results
     
     def calc_energy(self, act_vec):
         energy = -(act_vec@(self.W@act_vec))
@@ -126,15 +129,30 @@ class HopfieldNetwork:
     def match_memories(self, mem1, mem2):
         return (mem1==mem2).sum()/self.num_nodes
 
-    def evaluate(self):
-        scores = []
-        for memcue_img_path, rec_mem in zip(self.memcue_img_paths, self.recalled_memories):
-            _, fname_with_ext = os.path.split(memcue_img_path)
-            fname = fname_with_ext[:-4]
-            corres_mem_img_fname = fname.split('_')[0]
-            corres_mem = self.memories[int(corres_mem_img_fname)-1]
 
-            scores.append(self.match_memories(rec_mem, corres_mem))
+class BipolarHN(BaseHopfieldNetwork):
+    def __init__(self, img_shape: tuple, mem_img_paths: list, threshold: int, thinking_time: int):
+        super().__init__(img_shape, mem_img_paths, threshold, thinking_time)
+        self.OFF_ACT_VAL = -1
+        
+        self.memories = self.fit_and_get_memories()
 
-        return np.mean(scores), np.std(scores)
+    def calc_mem_weights(self, mem):
+        x = mem.flatten()
+        mem_w = x.reshape((-1, 1))@x.reshape((1, -1))
+        np.fill_diagonal(mem_w, 0)
+        return mem_w
+    
 
+class BinaryHN(BaseHopfieldNetwork):
+    def __init__(self, img_shape: tuple, mem_img_paths: list, threshold: int, thinking_time: int):
+        super().__init__(img_shape, mem_img_paths, threshold, thinking_time)
+        self.OFF_ACT_VAL = 0
+
+        self.memories = self.fit_and_get_memories()
+
+    def calc_mem_weights(self, mem):
+        x = 2*mem.flatten()-1
+        mem_w = x.reshape((-1, 1))@x.reshape((1, -1))
+        np.fill_diagonal(mem_w, 0)
+        return mem_w
