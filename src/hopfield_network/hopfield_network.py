@@ -28,10 +28,14 @@ def plot(imgs):
 
     plt.show()
 
+
+
 class BaseHopfieldNetwork:
     def __init__(self, img_shape: tuple, mem_img_paths: list, threshold: int, thinking_time: int):
         self.OFF_ACT_VAL: int
         self.results = {}
+        self.stopping_step = []
+        self.rng = np.random.default_rng()
         
         self.img_shape = img_shape
         self.mem_img_paths = mem_img_paths
@@ -81,20 +85,37 @@ class BaseHopfieldNetwork:
 
     def remember_(self, mem_cue):
         x = mem_cue.flatten()
+        x_prev = x.copy()
         mem_energies = []
-
+        idxs_ = np.arange(len(x))
+        print('>> Sequential Remembering')
         for t in tqdm(range(self.thinking_time)):
-            i = random.randint(0, len(x)-1)
-            i_local_field = np.dot(self.W[i][:], x)
+            self.rng.shuffle(idxs_)
+            for i in idxs_:
+            # for i in (range(len(x))):
+            # i = random.randint(0, len(x)-1)
+                i_local_field = np.dot(self.W[i][:], x)
 
-            if i_local_field > 0:
-                x[i] = 1
-            elif i_local_field < 0:
-                x[i] = -1
+                if i_local_field > 0:
+                    x[i] = 1
+                elif i_local_field < 0:
+                    x[i] = self.OFF_ACT_VAL
 
-            ##########################
-            if t%1000 == 0:
-                mem_energies.append(self.calc_energy(x))
+                ##########################
+                if i%4000 == 0:
+                    mem_energies.append(self.calc_energy(x))
+
+
+            stop = np.equal(x, x_prev).all()
+            if stop:
+                # print('stopping at', t)
+                self.stopping_step.append(t)
+                break
+            else:
+                x_prev = x.copy()
+
+        else:
+            self.stopping_step.append(t)
 
         recalled_mem = x.reshape(self.img_shape)
         return recalled_mem, mem_energies
