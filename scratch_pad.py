@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from glob import glob
 import matplotlib.pyplot as plt
-from src.hopfield_network import BipolarHN, BinaryHN, plot
+from src.hopfield_network import ImBipolarHN, ImBinaryHN, plot
 
 data_path = 'D:\KJ_personal\Stuff\OCL\hopfield_network\Hopfield_network-master'
 
@@ -32,15 +32,15 @@ cue_img_paths = glob(os.path.join(data_path, 'test_pics\\*.jpg'))
 
 ################################# BIPOLAR HN #######################################
 
-model = BipolarHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
+model = ImBipolarHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
 res = model.remember(cue_img_paths)
 
 mem_cues, recalled_memories = [], []
 for k,v in res.items():
-    mem_cues.append(v['mem_cue'])
-    recalled_memories.append(v['recalled_mem'])
+    mem_cues.append(v['mem_cue_img'])
+    recalled_memories.append(v['recalled_mem_img'])
 
-plot(model.memories)
+plot([mem.reshape(img_shape) for mem in model.memories])
 plot(mem_cues)
 plot(recalled_memories)
 
@@ -54,15 +54,15 @@ for k,v in res.items():
 #%%
 ################################# BINARY HN #######################################
 
-model = BinaryHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
+model = ImBinaryHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
 res = model.remember(cue_img_paths)
 
 mem_cues, recalled_memories = [], []
 for k,v in res.items():
-    mem_cues.append(v['mem_cue'])
-    recalled_memories.append(v['recalled_mem'])
+    mem_cues.append(v['mem_cue_img'])
+    recalled_memories.append(v['recalled_mem_img'])
 
-plot(model.memories)
+plot([mem.reshape(img_shape) for mem in model.memories])
 plot(mem_cues)
 plot(recalled_memories)
 
@@ -80,5 +80,5 @@ for k,v in res.items():
 
 #%%
 
-model_bp = BipolarHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
-model_bn = BinaryHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
+model_bp = ImBipolarHN(img_shape, img_paths, threshold=65, thinking_time=40_000)
+model_bn = ImBinaryHN(img_shape, img_paths, threshold=65, thinking_time=40_000)

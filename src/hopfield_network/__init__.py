@@ -1,1 +1,1 @@
-from .hopfield_network import BinaryHN, BipolarHN, plot, BaseHopfieldNetwork
+from .hopfield_network import ImBinaryHN, ImBipolarHN, plot
