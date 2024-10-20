@@ -65,6 +65,28 @@ class BaseHopfieldNetwork:
         mem_w = mem.reshape((-1, 1))@mem.reshape((1, -1))
         np.fill_diagonal(mem_w, 0)
         return mem_w
+    
+    def sync_remember(self, mem):
+        mem_prev = mem.copy()
+        mem_energies = [11111111]
+
+        for t in (range(self.thinking_time)):
+            local_fields = self.W@mem
+            mem[local_fields>0] = 1
+            mem[local_fields<0] = self.off_act_val
+
+            stop = np.equal(mem, mem_prev).all()
+            if stop:
+                # print('stopping at', t)
+                self.stopping_step.append(t)
+                break
+            else:
+                mem_prev = mem.copy()
+
+        else:
+            self.stopping_step.append(t)
+
+        return mem, mem_energies
 
     def remember_(self, mem):
         mem_prev = mem.copy()
@@ -194,7 +216,7 @@ class ImageHopfieldNetwork(BaseHopfieldNetwork):
             res = {}
 
             mem_cue = self.read_img_to_mem(path)
-            recalled_mem, res['energies'] = self.remember_(mem_cue)
+            recalled_mem, res['energies'] = self.remember_(mem_cue.copy())
             res['mem_cue_img'] = mem_cue.reshape(self.img_shape)
             res['recalled_mem_img'] = recalled_mem.reshape(self.img_shape)
             
