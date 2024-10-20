@@ -94,8 +94,6 @@ def show_res(res, model, show_vis_dist=False):
         for k in sorted(vis_dist.keys()):
             print('{:10} | {:^10}'.format(str(k), vis_dist[k]))
 
-    
-
 #%%
 
 NUM_NODES = 3
@@ -120,7 +118,7 @@ memories = np.array([
     [1, 1, o, o, o]
 ])
 
-model = VecHopfieldNetwork(NUM_NODES, THINKING_TIME, memories, off_act_val)
+model = VecHopfieldNetwork(memories, THINKING_TIME, off_act_val)
 model.W
 #%%
 
@@ -133,9 +131,10 @@ mem_cues = np.array([
 ])
 
 res = model.remember(mem_cues)
-show_res(res)
+show_res(res, model, show_vis_dist=True)
 
 #%%
+# testing with random init states
 pop_size = 10_000
 rng = np.random.default_rng()
 init_states = rng.integers(0, 2, size=(pop_size, NUM_NODES))
@@ -145,6 +144,7 @@ show_res(res, model, show_vis_dist=True)
 
 #%%
 
+# testing with random init states having 0 hidden unit value
 pop_size = 10_000
 rng = np.random.default_rng()
 init_states = rng.integers(0, 2, size=(pop_size, NUM_NODES))
@@ -154,6 +154,7 @@ res = model.remember(init_states)
 show_res(res, model, show_vis_dist=True)
 
 #%%
+# testing with random init states having 0 hidden unit value and output unit value
 
 pop_size = 10_000
 rng = np.random.default_rng()

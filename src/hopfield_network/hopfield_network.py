@@ -29,18 +29,18 @@ def plot(imgs):
     plt.show()
 
 class BaseHopfieldNetwork:
-    def __init__(self, num_nodes, thinking_time, memories: list):
+    def __init__(self, memories: list, thinking_time):
         self.off_act_val: int
         
         self.results = {}
         self.stopping_step = []
         self.rng = np.random.default_rng()
         
-        self.num_nodes = num_nodes
-        self.thinking_time = thinking_time
         self.memories = memories
+        self.num_nodes = self.memories.shape[1]
+        self.thinking_time = thinking_time
 
-        self.W = np.zeros((num_nodes, num_nodes))
+        self.W = np.zeros((self.num_nodes, self.num_nodes))
 
         if self.off_act_val==-1:
             self.calc_mem_weights = self.calc_bip_mem_weights
@@ -70,7 +70,7 @@ class BaseHopfieldNetwork:
         mem_prev = mem.copy()
         mem_energies = []
         idxs_ = np.arange(len(mem))
-        # print('>> Sequential Remembering')
+
         for t in (range(self.thinking_time)):
             self.rng.shuffle(idxs_)
             for i in idxs_:
@@ -114,9 +114,9 @@ class BaseHopfieldNetwork:
 
 
 class VecHopfieldNetwork(BaseHopfieldNetwork):
-    def __init__(self, num_nodes, thinking_time, memories, off_act_val):
+    def __init__(self, memories, thinking_time, off_act_val):
         self.off_act_val = off_act_val
-        super().__init__(num_nodes, thinking_time, memories)
+        super().__init__(memories, thinking_time)
         
 
     def remember(self, mem_cues: list):
@@ -150,10 +150,9 @@ class ImageHopfieldNetwork(BaseHopfieldNetwork):
         self.threshold = threshold
         self.off_act_val = off_act_val
 
-        num_nodes = img_shape[0]*img_shape[1]
         memories = self.get_memories()
 
-        super().__init__(num_nodes, thinking_time, memories)
+        super().__init__(memories, thinking_time)
 
     def read_img_to_mem(self, img_path):
         pil_img = Image.open(img_path).convert(mode="L")
@@ -177,6 +176,7 @@ class ImageHopfieldNetwork(BaseHopfieldNetwork):
         for path in self.mem_img_paths:
             mem = self.read_img_to_mem(path)
             memories.append(mem)
+        memories = np.array(memories)
         return memories
     
     def extract_fname(self, path):
