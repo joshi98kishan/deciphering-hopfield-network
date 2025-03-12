@@ -1,2 +1,3 @@
 # understanding-hopfield-network
-Detailed analysis of Hopfield Network to understand it deeply.
+
+This repo contains code for the blog which will be publihsed here: [https://joshi98kishan.github.io/](https://joshi98kishan.github.io/).
