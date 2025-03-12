@@ -188,7 +188,7 @@ THINKING_TIME = 100
 off_act_val = 0
 memories = gen_shifter_data(num_bits, pop_size)
 num_nodes = 2*num_bits+3
-model = VecHopfieldNetwork(num_nodes, THINKING_TIME, memories, off_act_val)
+model = VecHopfieldNetwork(memories, THINKING_TIME, off_act_val)
 W = model.W
 plt.matshow(model.W)
 
